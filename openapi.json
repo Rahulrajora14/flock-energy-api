@@ -1,0 +1,2090 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Urja Meter API",
+    "description": "\nREST API over the **Urja Meter Ops** portal. The service signs in to the portal with\nserver-side credentials, reads smart-meter data the same way the portal's own web UI\ndoes, and returns it as consistent JSON. It never changes anything on the portal.\n\nAll errors use one shape: `{\"error\": {\"code\": \"...\", \"message\": \"...\"}}`.\n",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Service liveness",
+        "description": "Always cheap: does not contact the portal.",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health/portal": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Portal connectivity and authentication",
+        "description": "Signs in to the portal if needed and runs one lightweight search request.",
+        "operationId": "portal_health_api_health_portal_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortalHealthResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/meters": {
+      "get": {
+        "tags": [
+          "meters"
+        ],
+        "summary": "List meters",
+        "description": "Meters sorted by ID. Filters are exact and case-insensitive (``q`` is a substring match).",
+        "operationId": "list_meters_api_meters_get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "1-based page number.",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "1-based page number."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Items per page (max 100).",
+              "default": 20,
+              "title": "Page Size"
+            },
+            "description": "Items per page (max 100)."
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Substring of meter ID or serial number.",
+              "title": "Q"
+            },
+            "description": "Substring of meter ID or serial number."
+          },
+          {
+            "name": "installation_status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "e.g. Installed, Faulty, Decommissioned.",
+              "title": "Installation Status"
+            },
+            "description": "e.g. Installed, Faulty, Decommissioned."
+          },
+          {
+            "name": "make",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Manufacturer, e.g. HPL, Genus, L&T.",
+              "title": "Make"
+            },
+            "description": "Manufacturer, e.g. HPL, Genus, L&T."
+          },
+          {
+            "name": "phase_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "single",
+                    "three"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Phase Type"
+            }
+          },
+          {
+            "name": "installation_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "e.g. 'Whole Current', 'CT Operated'.",
+              "title": "Installation Type"
+            },
+            "description": "e.g. 'Whole Current', 'CT Operated'."
+          },
+          {
+            "name": "dt_code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Distribution transformer code, e.g. DT-001.",
+              "title": "Dt Code"
+            },
+            "description": "Distribution transformer code, e.g. DT-001."
+          },
+          {
+            "name": "feeder_code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Feeder code, e.g. F-001.",
+              "title": "Feeder Code"
+            },
+            "description": "Feeder code, e.g. F-001."
+          },
+          {
+            "name": "zone_code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Zone code, e.g. Z-01.",
+              "title": "Zone Code"
+            },
+            "description": "Zone code, e.g. Z-01."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeterPage"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "meter_id": "J100000",
+                      "serial_number": "SE33962",
+                      "make": "HPL",
+                      "phase_type": "single",
+                      "installation_status": "Decommissioned",
+                      "installation_type": "Whole Current",
+                      "dt_code": "DT-001"
+                    },
+                    {
+                      "meter_id": "J100001",
+                      "serial_number": "GE84132",
+                      "make": "L&T",
+                      "phase_type": "single",
+                      "installation_status": "Installed",
+                      "installation_type": "CT Operated",
+                      "dt_code": "DT-002"
+                    }
+                  ],
+                  "page": 1,
+                  "page_size": 2,
+                  "total": 403,
+                  "total_pages": 202,
+                  "data_as_of": "2026-11-05T09:20:00Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed meter ID or invalid parameter combination.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "invalid_request",
+                    "message": "Invalid meter ID: use 1-32 letters, digits, '-' or '_' (for example J100000)."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SERVICE_API_KEY is set and X-API-Key is missing or wrong.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Missing or invalid X-API-Key header."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Query parameter failed validation.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "validation_error",
+                    "message": "page_size: Input should be less than or equal to 100"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Portal unavailable, rejected our credentials, or answered unexpectedly.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "portal_unavailable",
+                    "message": "Portal returned HTTP 502 for /portal/meters/J100000/energy."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Portal is rate limiting; retry after the Retry-After header (seconds).",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "portal_rate_limited",
+                    "message": "The portal is rate limiting requests; try again shortly."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Portal did not answer in time.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "portal_timeout",
+                    "message": "Portal did not answer in time (/portal/meters/J100000/energy)."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meters/{meter_id}": {
+      "get": {
+        "tags": [
+          "meters"
+        ],
+        "summary": "Meter details",
+        "description": "Nameplate attributes, network position and coordinates of one meter.",
+        "operationId": "get_meter_api_meters__meter_id__get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "meter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Portal meter number, e.g. J100000 (case-insensitive).",
+              "examples": [
+                "J100000"
+              ],
+              "title": "Meter Id"
+            },
+            "description": "Portal meter number, e.g. J100000 (case-insensitive)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeterDetail"
+                },
+                "example": {
+                  "meter_id": "J100000",
+                  "serial_number": "SE33962",
+                  "make": "HPL",
+                  "phase_type": "single",
+                  "installation_status": "Decommissioned",
+                  "installation_type": "Whole Current",
+                  "dt_code": "DT-001",
+                  "network": {
+                    "zone": {
+                      "code": "Z-01",
+                      "name": "Jaipur Zone 1"
+                    },
+                    "circle": {
+                      "code": "C-01",
+                      "name": "Circle 1"
+                    },
+                    "division": {
+                      "code": "D-01",
+                      "name": "Division 1"
+                    },
+                    "subdivision": {
+                      "code": "SD-01",
+                      "name": "Subdivision 1"
+                    },
+                    "substation": {
+                      "code": "SS-01",
+                      "name": "Substation 1"
+                    },
+                    "feeder": {
+                      "code": "F-001",
+                      "name": "Feeder 1"
+                    },
+                    "distribution_transformer": {
+                      "code": "DT-001",
+                      "name": "Malviya Nagar DT 1"
+                    }
+                  },
+                  "coordinates": {
+                    "latitude": 26.938961002479868,
+                    "longitude": 75.83095696146852
+                  },
+                  "data_quality_notes": []
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed meter ID or invalid parameter combination.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "invalid_request",
+                    "message": "Invalid meter ID: use 1-32 letters, digits, '-' or '_' (for example J100000)."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SERVICE_API_KEY is set and X-API-Key is missing or wrong.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Missing or invalid X-API-Key header."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No meter with this ID exists on the portal.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "meter_not_found",
+                    "message": "Meter 'J999999' was not found."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Query parameter failed validation.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "validation_error",
+                    "message": "page_size: Input should be less than or equal to 100"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Portal unavailable, rejected our credentials, or answered unexpectedly.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "portal_unavailable",
+                    "message": "Portal returned HTTP 502 for /portal/meters/J100000/energy."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Portal is rate limiting; retry after the Retry-After header (seconds).",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "portal_rate_limited",
+                    "message": "The portal is rate limiting requests; try again shortly."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Portal did not answer in time.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "portal_timeout",
+                    "message": "Portal did not answer in time (/portal/meters/J100000/energy)."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meters/{meter_id}/location": {
+      "get": {
+        "tags": [
+          "meters"
+        ],
+        "summary": "Meter location and network position",
+        "description": "Coordinates, zone-to-transformer path, and the transformer's registry entry.",
+        "operationId": "get_meter_location_api_meters__meter_id__location_get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "meter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Portal meter number, e.g. J100000 (case-insensitive).",
+              "examples": [
+                "J100000"
+              ],
+              "title": "Meter Id"
+            },
+            "description": "Portal meter number, e.g. J100000 (case-insensitive)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeterLocation"
+                },
+                "example": {
+                  "meter_id": "J100400",
+                  "coordinates": {
+                    "latitude": 26.882703003792653,
+                    "longitude": 75.74015781362327
+                  },
+                  "network": {
+                    "zone": {
+                      "code": "Z-01",
+                      "name": "Jaipur Zone 1"
+                    },
+                    "circle": {
+                      "code": "C-01",
+                      "name": "Circle 1"
+                    },
+                    "division": {
+                      "code": "D-07",
+                      "name": "Division 7"
+                    },
+                    "subdivision": {
+                      "code": "SD-07",
+                      "name": "Subdivision 7"
+                    },
+                    "substation": {
+                      "code": "SS-07",
+                      "name": "Substation 7"
+                    },
+                    "feeder": {
+                      "code": "F-007",
+                      "name": "Feeder 7"
+                    },
+                    "distribution_transformer": {
+                      "code": "DT-007",
+                      "name": "Old Malviya Nagar Xfmr"
+                    }
+                  },
+                  "transformer": {
+                    "code": "DT-007",
+                    "name": "Sanganer DT 7",
+                    "feeder_code": "F-007",
+                    "capacity_kva": 63.0
+                  },
+                  "data_quality_notes": [
+                    "Transformer DT-007 is named 'Old Malviya Nagar Xfmr' on the meter record but 'Sanganer DT 7' in the transformer registry."
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed meter ID or invalid parameter combination.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "invalid_request",
+                    "message": "Invalid meter ID: use 1-32 letters, digits, '-' or '_' (for example J100000)."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SERVICE_API_KEY is set and X-API-Key is missing or wrong.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Missing or invalid X-API-Key header."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No meter with this ID exists on the portal.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "meter_not_found",
+                    "message": "Meter 'J999999' was not found."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Query parameter failed validation.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "validation_error",
+                    "message": "page_size: Input should be less than or equal to 100"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Portal unavailable, rejected our credentials, or answered unexpectedly.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "portal_unavailable",
+                    "message": "Portal returned HTTP 502 for /portal/meters/J100000/energy."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Portal is rate limiting; retry after the Retry-After header (seconds).",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "portal_rate_limited",
+                    "message": "The portal is rate limiting requests; try again shortly."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Portal did not answer in time.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "portal_timeout",
+                    "message": "Portal did not answer in time (/portal/meters/J100000/energy)."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meters/{meter_id}/consumption": {
+      "get": {
+        "tags": [
+          "meters"
+        ],
+        "summary": "Meter consumption readings",
+        "description": "Register readings from the portal, oldest first.\n\nWithout dates the portal returns its default window: the last 7 days of available data.\nWith only ``from`` it returns 7 days starting there; with only ``to``, 7 days ending there.",
+        "operationId": "get_meter_consumption_api_meters__meter_id__consumption_get",
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "meter_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Portal meter number, e.g. J100000 (case-insensitive).",
+              "examples": [
+                "J100000"
+              ],
+              "title": "Meter Id"
+            },
+            "description": "Portal meter number, e.g. J100000 (case-insensitive)."
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "First day, YYYY-MM-DD (inclusive).",
+              "title": "From"
+            },
+            "description": "First day, YYYY-MM-DD (inclusive)."
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Last day, YYYY-MM-DD (inclusive).",
+              "title": "To"
+            },
+            "description": "Last day, YYYY-MM-DD (inclusive)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeterConsumption"
+                },
+                "example": {
+                  "meter_id": "J100000",
+                  "requested_from": "2026-06-01",
+                  "requested_to": "2026-06-01",
+                  "first_reading_at": "2026-06-01T00:00:00",
+                  "last_reading_at": "2026-06-01T23:30:00",
+                  "interval_minutes": 30,
+                  "reading_count": 48,
+                  "summary": {
+                    "kwh_consumed": 19.87,
+                    "kvah_consumed": 21.46,
+                    "average_voltage_r_v": 229.69
+                  },
+                  "readings": [
+                    {
+                      "timestamp": "2026-06-01T00:00:00",
+                      "cumulative_kwh": 47972.42,
+                      "cumulative_kvah": 51810.22,
+                      "voltage_r_v": 237.0
+                    },
+                    {
+                      "timestamp": "2026-06-01T00:30:00",
+                      "cumulative_kwh": 47972.85,
+                      "cumulative_kvah": 51810.67,
+                      "voltage_r_v": 222.0,
+                      "interval_kwh": 0.43
+                    }
+                  ],
+                  "data_quality_notes": []
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed meter ID or invalid parameter combination.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "invalid_request",
+                    "message": "Invalid meter ID: use 1-32 letters, digits, '-' or '_' (for example J100000)."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SERVICE_API_KEY is set and X-API-Key is missing or wrong.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Missing or invalid X-API-Key header."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No meter with this ID exists on the portal.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "meter_not_found",
+                    "message": "Meter 'J999999' was not found."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Query parameter failed validation.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "validation_error",
+                    "message": "page_size: Input should be less than or equal to 100"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Portal unavailable, rejected our credentials, or answered unexpectedly.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "portal_unavailable",
+                    "message": "Portal returned HTTP 502 for /portal/meters/J100000/energy."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Portal is rate limiting; retry after the Retry-After header (seconds).",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "portal_rate_limited",
+                    "message": "The portal is rate limiting requests; try again shortly."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Portal did not answer in time.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": {
+                    "code": "portal_timeout",
+                    "message": "Portal did not answer in time (/portal/meters/J100000/energy)."
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/transformers": {
+      "get": {
+        "tags": [
+          "network"
+        ],
+        "summary": "Distribution transformer registry",
+        "operationId": "list_transformers_api_transformers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransformerList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SERVICE_API_KEY is set and X-API-Key is missing or wrong.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Missing or invalid X-API-Key header."
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Portal unavailable, rejected our credentials, or answered unexpectedly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "portal_unavailable",
+                    "message": "Portal returned HTTP 502 for /portal/meters/J100000/energy."
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Portal is rate limiting; retry after the Retry-After header (seconds).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "portal_rate_limited",
+                    "message": "The portal is rate limiting requests; try again shortly."
+                  }
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Portal did not answer in time.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "portal_timeout",
+                    "message": "Portal did not answer in time (/portal/meters/J100000/energy)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    },
+    "/api/network/hierarchy": {
+      "get": {
+        "tags": [
+          "network"
+        ],
+        "summary": "Network hierarchy tree",
+        "description": "Zone → circle → division → subdivision → substation → feeder → transformer, with meter counts.",
+        "operationId": "network_hierarchy_api_network_hierarchy_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetworkHierarchy"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "SERVICE_API_KEY is set and X-API-Key is missing or wrong.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "invalid_api_key",
+                    "message": "Missing or invalid X-API-Key header."
+                  }
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Portal unavailable, rejected our credentials, or answered unexpectedly.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "portal_unavailable",
+                    "message": "Portal returned HTTP 502 for /portal/meters/J100000/energy."
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Portal is rate limiting; retry after the Retry-After header (seconds).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "portal_rate_limited",
+                    "message": "The portal is rate limiting requests; try again shortly."
+                  }
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Portal did not answer in time.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": {
+                    "code": "portal_timeout",
+                    "message": "Portal did not answer in time (/portal/meters/J100000/energy)."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ConsumptionReading": {
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "Local portal time; the portal gives no timezone (see README)."
+          },
+          "cumulative_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cumulative Kwh",
+            "description": "Active-energy register reading (kWh)."
+          },
+          "cumulative_kvah": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cumulative Kvah",
+            "description": "Apparent-energy register reading (kVAh)."
+          },
+          "voltage_r_v": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voltage R V",
+            "description": "R-phase voltage (V)."
+          },
+          "interval_kwh": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval Kwh",
+            "description": "Derived: change in cumulative_kwh since the previous reading."
+          }
+        },
+        "type": "object",
+        "required": [
+          "timestamp"
+        ],
+        "title": "ConsumptionReading"
+      },
+      "ConsumptionSummary": {
+        "properties": {
+          "kwh_consumed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kwh Consumed",
+            "description": "Derived: last minus first cumulative_kwh."
+          },
+          "kvah_consumed": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kvah Consumed",
+            "description": "Derived: last minus first cumulative_kvah."
+          },
+          "average_voltage_r_v": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average Voltage R V"
+          }
+        },
+        "type": "object",
+        "title": "ConsumptionSummary"
+      },
+      "Coordinates": {
+        "properties": {
+          "latitude": {
+            "type": "number",
+            "title": "Latitude",
+            "examples": [
+              26.938961002479868
+            ]
+          },
+          "longitude": {
+            "type": "number",
+            "title": "Longitude",
+            "examples": [
+              75.83095696146852
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "title": "Coordinates"
+      },
+      "ErrorBody": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "examples": [
+              "meter_not_found"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "examples": [
+              "Meter 'J999999' was not found."
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorBody"
+      },
+      "ErrorResponse": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "examples": [
+              "healthy"
+            ]
+          },
+          "service": {
+            "type": "string",
+            "title": "Service",
+            "examples": [
+              "urja-meter-api"
+            ]
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "examples": [
+              "1.0.0"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "service",
+          "version"
+        ],
+        "title": "HealthResponse"
+      },
+      "HierarchyNode": {
+        "properties": {
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "meter_count": {
+            "type": "integer",
+            "title": "Meter Count"
+          },
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/HierarchyNode"
+            },
+            "type": "array",
+            "title": "Children"
+          }
+        },
+        "type": "object",
+        "required": [
+          "level",
+          "code",
+          "name",
+          "meter_count"
+        ],
+        "title": "HierarchyNode"
+      },
+      "Meter": {
+        "properties": {
+          "meter_id": {
+            "type": "string",
+            "title": "Meter Id",
+            "examples": [
+              "J100000"
+            ]
+          },
+          "serial_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serial Number",
+            "examples": [
+              "SE33962"
+            ]
+          },
+          "make": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Make",
+            "examples": [
+              "HPL"
+            ]
+          },
+          "phase_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phase Type",
+            "description": "'single' or 'three' as reported by the portal."
+          },
+          "installation_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Installation Status",
+            "examples": [
+              "Installed",
+              "Faulty",
+              "Decommissioned"
+            ]
+          },
+          "installation_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Installation Type",
+            "examples": [
+              "Whole Current",
+              "CT Operated"
+            ]
+          },
+          "dt_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dt Code",
+            "description": "Distribution transformer the meter is fed from."
+          }
+        },
+        "type": "object",
+        "required": [
+          "meter_id"
+        ],
+        "title": "Meter"
+      },
+      "MeterConsumption": {
+        "properties": {
+          "meter_id": {
+            "type": "string",
+            "title": "Meter Id"
+          },
+          "requested_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested From"
+          },
+          "requested_to": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested To"
+          },
+          "first_reading_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Reading At"
+          },
+          "last_reading_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Reading At"
+          },
+          "interval_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval Minutes",
+            "description": "Most common spacing between readings."
+          },
+          "reading_count": {
+            "type": "integer",
+            "title": "Reading Count"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ConsumptionSummary"
+          },
+          "readings": {
+            "items": {
+              "$ref": "#/components/schemas/ConsumptionReading"
+            },
+            "type": "array",
+            "title": "Readings"
+          },
+          "data_quality_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Data Quality Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "meter_id",
+          "reading_count",
+          "summary",
+          "readings"
+        ],
+        "title": "MeterConsumption"
+      },
+      "MeterDetail": {
+        "properties": {
+          "meter_id": {
+            "type": "string",
+            "title": "Meter Id",
+            "examples": [
+              "J100000"
+            ]
+          },
+          "serial_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serial Number",
+            "examples": [
+              "SE33962"
+            ]
+          },
+          "make": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Make",
+            "examples": [
+              "HPL"
+            ]
+          },
+          "phase_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phase Type",
+            "description": "'single' or 'three' as reported by the portal."
+          },
+          "installation_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Installation Status",
+            "examples": [
+              "Installed",
+              "Faulty",
+              "Decommissioned"
+            ]
+          },
+          "installation_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Installation Type",
+            "examples": [
+              "Whole Current",
+              "CT Operated"
+            ]
+          },
+          "dt_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dt Code",
+            "description": "Distribution transformer the meter is fed from."
+          },
+          "network": {
+            "$ref": "#/components/schemas/NetworkPosition"
+          },
+          "coordinates": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Coordinates"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "data_quality_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Data Quality Notes",
+            "description": "Inconsistencies found in the portal data for this meter (nothing is silently corrected)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "meter_id",
+          "network"
+        ],
+        "title": "MeterDetail"
+      },
+      "MeterLocation": {
+        "properties": {
+          "meter_id": {
+            "type": "string",
+            "title": "Meter Id"
+          },
+          "coordinates": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Coordinates"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "network": {
+            "$ref": "#/components/schemas/NetworkPosition"
+          },
+          "transformer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Transformer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Registry entry for the meter's transformer (capacity, feeder), when it exists."
+          },
+          "data_quality_notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Data Quality Notes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "meter_id",
+          "coordinates",
+          "network"
+        ],
+        "title": "MeterLocation"
+      },
+      "MeterPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Meter"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "Page Size"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages"
+          },
+          "data_as_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data As Of",
+            "description": "When the meter snapshot was fetched from the portal."
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total",
+          "total_pages"
+        ],
+        "title": "MeterPage"
+      },
+      "NetworkHierarchy": {
+        "properties": {
+          "levels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Levels"
+          },
+          "meter_count": {
+            "type": "integer",
+            "title": "Meter Count"
+          },
+          "roots": {
+            "items": {
+              "$ref": "#/components/schemas/HierarchyNode"
+            },
+            "type": "array",
+            "title": "Roots"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "levels",
+          "meter_count",
+          "roots",
+          "note"
+        ],
+        "title": "NetworkHierarchy"
+      },
+      "NetworkNode": {
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code",
+            "description": "Portal code, e.g. 'F-001'. null when the portal has none."
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Display name. null when the portal has none."
+          }
+        },
+        "type": "object",
+        "title": "NetworkNode"
+      },
+      "NetworkPosition": {
+        "properties": {
+          "zone": {
+            "$ref": "#/components/schemas/NetworkNode"
+          },
+          "circle": {
+            "$ref": "#/components/schemas/NetworkNode"
+          },
+          "division": {
+            "$ref": "#/components/schemas/NetworkNode"
+          },
+          "subdivision": {
+            "$ref": "#/components/schemas/NetworkNode"
+          },
+          "substation": {
+            "$ref": "#/components/schemas/NetworkNode"
+          },
+          "feeder": {
+            "$ref": "#/components/schemas/NetworkNode"
+          },
+          "distribution_transformer": {
+            "$ref": "#/components/schemas/NetworkNode"
+          }
+        },
+        "type": "object",
+        "required": [
+          "zone",
+          "circle",
+          "division",
+          "subdivision",
+          "substation",
+          "feeder",
+          "distribution_transformer"
+        ],
+        "title": "NetworkPosition",
+        "description": "The meter's path through the supply network, top (zone) to bottom (transformer)."
+      },
+      "PortalHealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "examples": [
+              "ok",
+              "unavailable"
+            ]
+          },
+          "portal_url": {
+            "type": "string",
+            "title": "Portal Url"
+          },
+          "authenticated": {
+            "type": "boolean",
+            "title": "Authenticated"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "portal_url",
+          "authenticated"
+        ],
+        "title": "PortalHealthResponse"
+      },
+      "Transformer": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code",
+            "examples": [
+              "DT-001"
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "examples": [
+              "Malviya Nagar DT 1"
+            ]
+          },
+          "feeder_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feeder Code",
+            "examples": [
+              "F-001"
+            ]
+          },
+          "capacity_kva": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capacity Kva",
+            "examples": [
+              100
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "Transformer"
+      },
+      "TransformerList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Transformer"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "TransformerList"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "type": "apiKey",
+        "description": "Required only when the server is started with SERVICE_API_KEY set.",
+        "in": "header",
+        "name": "X-API-Key"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "health",
+      "description": "Service and portal status."
+    },
+    {
+      "name": "meters",
+      "description": "Smart-meter data."
+    },
+    {
+      "name": "network",
+      "description": "Supply network: transformers and hierarchy."
+    }
+  ]
+}
